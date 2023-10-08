@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+
+    <title>Swiggato</title>
+  </head>
+  <body onload="onPageLoad()">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light px-4">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Navbar</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="#">Home</a>
+            </li>
+          </ul>
+          <div>
+            <a href="/frontend/login.html" class="btn btn-outline-success"
+              >Login</a
+            >
+            <a href="/frontend/register.html" class="btn btn-success"
+              >Register</a
+            >
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <h1 class="mx-auto text-center my-5">Swiggato</h1>
+
+      <form class="row g-3 form" id="form">
+        <p class="display-5">Select your preferences</p>
+        <div class="col-md-3">
+          <label for="city" class="form-label">City</label>
+          <input type="text" class="form-control" id="city" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="cuisine">Cuisine</label>
+          <select class="form-select" id="cuisine">
+            <option selected>Choose...</option>
+            <option value="North Indian">North Indian</option>
+            <option value="Italian">Italian</option>
+            <option value="Chinese">Chinese</option>
+            <option value="South Indian">South Indian</option>
+            <option value="Burgers">Burgir</option>
+            <option value="Deserts">Deserts</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="minPrice" class="form-label">Price Range</label>
+          <input
+            type="number"
+            class="form-control"
+            id="minPrice"
+            placeholder="Minimum Price"
+          />
+        </div>
+        <div class="col-md-3">
+          <label for="maxPrice" class="form-label" style="opacity: 0"
+            >Price Range</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="maxPrice"
+            placeholder="Maximum Price"
+          />
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+      </form>
+
+      <h3 class="mt-5">Top Restaurants</h3>
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th scope="col">Restaurant</th>
+            <th scope="col">Cuisine</th>
+            <th scope="col">Average Price for two</th>
+            <th scope="col">Rating</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <script>
+      let cookie = "";
+      function getCookie(cname) {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(";");
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) == " ") {
+            c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+          }
+        }
+        return "";
+      }
+
+      const onPageLoad = async () => {
+        cookie = getCookie("userId");
+        if (cookie == "") {
+          window.location.replace("http://127.0.0.1:5500/frontend/login.html");
+        } else {
+          console.log(cookie);
+          const data = {
+            jwt: cookie,
+          };
+          const res = await fetch(
+            "http://127.0.0.1:8000/users/recommendation-by-ratings",
+            {
+              method: "POST",
+              body: JSON.stringify(data),
+            }
+          );
+          const body = await res.json();
+          displayRestaurants(JSON.parse(body));
+          console.log(body);
+        }
+      };
+
+      const form = document.getElementById("form");
+      const cityInp = document.getElementById("city");
+      const cuisineInp = document.getElementById("cuisine");
+      const minPriceInp = document.getElementById("minPrice");
+      const maxPriceInp = document.getElementById("maxPrice");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const data = {
+          city: cityInp.value,
+          cuisine: cuisineInp.value,
+          price:
+            (parseInt(minPriceInp.value) + parseInt(maxPriceInp.value)) / 2,
+        };
+
+        console.log(data.price, (minPriceInp.value + maxPriceInp.value) / 2);
+        const res = await fetch(
+          "http://127.0.0.1:8000/user/search-restaurants",
+          {
+            method: "POST",
+            body: JSON.stringify(data),
+          }
+        );
+        let body = await res.json();
+        body = JSON.parse(body);
+        console.log(body);
+        displayRestaurants(body);
+      });
+
+      const table = document.querySelector("table");
+      const tbody = document.querySelector("tbody");
+
+      const displayRestaurants = (data) => {
+        tbody.innerHTML = "";
+        const dataArr = Array.from(data);
+        console.log(dataArr);
+        dataArr.map((restuarant, i) => {
+          tr = document.createElement("tr");
+          tr.innerHTML = `
+                    <th scope="row">${restuarant["Restaurant Name"]}</th>
+                    <td>${restuarant["Cuisines"]}</td>
+                    <td>${restuarant["Average Cost for two"]}</td>
+                    <td>${restuarant["Aggregate rating"]}</td>
+                `;
+          tbody.appendChild(tr);
+        });
+      };
+    </script>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
